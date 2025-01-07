@@ -10,7 +10,6 @@ const userSchema = new Schema(
       unique: true,
       trim: true,
       index: true,
-      lowercase: true,
     },
     email: {
       type: String,
@@ -51,16 +50,20 @@ const userSchema = new Schema(
   }
 );
 
+// Password hashing before saving the user
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
+
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
+// Password comparison method
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
+// JWT access token generation
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
@@ -71,10 +74,12 @@ userSchema.methods.generateAccessToken = function () {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || "1h",
     }
   );
 };
+
+// JWT refresh token generation
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     {
@@ -82,9 +87,22 @@ userSchema.methods.generateRefreshToken = function () {
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY || "7d",
     }
   );
+};
+
+// Optional: Hash refreshToken before saving it
+userSchema.pre("save", async function (next) {
+  if (this.isModified("refreshToken")) {
+    this.refreshToken = await bcrypt.hash(this.refreshToken, 10);
+  }
+  next();
+});
+
+// Optional: Compare refresh token
+userSchema.methods.isRefreshTokenValid = async function (token) {
+  return await bcrypt.compare(token, this.refreshToken);
 };
 
 export const User = mongoose.model("User", userSchema);
