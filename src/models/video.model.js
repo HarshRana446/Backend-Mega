@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
-export const videoSchema = new Schema(
+const videoSchema = new Schema(
   {
     videofile: {
       type: String,
